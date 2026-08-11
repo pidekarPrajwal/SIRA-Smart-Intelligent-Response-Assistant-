@@ -11,8 +11,9 @@ OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_BASE_URL}/api/chat"
 # Change this to any model you have pulled locally (e.g. "llama3.2", "mistral", "qwen2.5").
 OLLAMA_MODEL = "llama3.2"
 
-# Request timeout in seconds. Local generation can take a while on first load.
-REQUEST_TIMEOUT_SECONDS = 120
+# Request timeout in seconds. The FIRST request after starting Ollama can be
+# slow because the model has to load into memory - give it plenty of room.
+REQUEST_TIMEOUT_SECONDS = 300
 
 # --- SIRA personality ---
 SIRA_SYSTEM_PROMPT = """You are SIRA, a highly intelligent personal AI assistant inspired by JARVIS.
@@ -40,13 +41,13 @@ At this stage you are a conversational assistant only.
 Do not claim to control the user's computer, access files, control devices,
 browse the internet, or perform actions unless those capabilities are actually implemented.
 """
-
+# --Systematic Intelligent Response Assistant--
 # --- Terminal UI text ---
 APP_BANNER = """========================================
               SIRA AI
 ========================================
-Local AI Assistant
+--Systematic Intelligent Response Assistant--
 Type 'exit' or 'quit' to close SIRA.
 """
 
-EXIT_COMMANDS = {"exit", "quit"}
+EXIT_COMMANDS = {"exit", "quit", "bye"}
