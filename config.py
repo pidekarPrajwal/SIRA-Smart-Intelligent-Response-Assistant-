@@ -50,4 +50,4 @@ APP_BANNER = """========================================
 Type 'exit' or 'quit' to close SIRA.
 """
 
-EXIT_COMMANDS = {"exit", "quit", "bye"}
+EXIT_COMMANDS = {"exit", "quit", "bye" , "see you"} 
