@@ -104,8 +104,24 @@ def get_user_input() -> str:
         sys.exit(0)
 
 
+def warm_up_model() -> None:
+    """
+    Send a trivial request before the chat loop starts so the (potentially
+    slow) first-time model load happens now, with a clear message, instead
+    of silently eating into the user's first real prompt.
+    """
+    print(f"Loading model '{OLLAMA_MODEL}' into memory, please wait...\n")
+    warm_up_messages: List[Message] = [
+        {"role": "system", "content": SIRA_SYSTEM_PROMPT},
+        {"role": "user", "content": "Hello"},
+    ]
+    send_chat_request(warm_up_messages)
+
+
 def main() -> None:
     print(APP_BANNER)
+
+    warm_up_model()
 
     conversation_history: List[Message] = build_initial_history()
 
