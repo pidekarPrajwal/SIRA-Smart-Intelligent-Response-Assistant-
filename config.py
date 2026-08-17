@@ -57,13 +57,17 @@ Voice mode: ON
 EXIT_COMMANDS = {"exit", "quit", "goodbye", "goodbye sira", "shutdown", "stop"}
 
 # ==========================================================================
-# -----------------Voice settings (Step 2)
+# Voice settings (Step 2)
 # ==========================================================================
 
 # --- Microphone / recording settings ---
 SAMPLE_RATE = 16000          # Whisper expects 16kHz mono audio
 CHANNELS = 1
-RECORD_SECONDS = 5           # Simple fixed-duration recording (V1 of voice mode)
+RECORD_SECONDS = 7           # Simple fixed-duration recording (V1 of voice mode)
+
+# If SIRA hears nothing (empty transcription) this many times in a row,
+# say goodbye and exit instead of listening forever.
+MAX_CONSECUTIVE_SILENCES = 1
 
 # --- Speech-to-Text (Faster-Whisper) settings ---
 WHISPER_MODEL = "small"      # tiny | base | small | medium | large-v3 ...
