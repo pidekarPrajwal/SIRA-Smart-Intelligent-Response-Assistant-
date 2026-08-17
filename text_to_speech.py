@@ -2,62 +2,79 @@
 # -----------------Voice settings (Step 2)
 # ==========================================================================
 """
-speech_to_text.py
+text_to_speech.py
 
-Handles ONLY transcription of recorded audio into text using Faster-Whisper.
-Does not touch the microphone, Ollama, or Piper directly.
+Handles ONLY speech synthesis (via the local Piper executable) and
+playback of the resulting audio. Does not touch the microphone,
+Whisper, or Ollama.
 """
 
-from typing import Optional
+import shutil
+import subprocess
+from pathlib import Path
 
-import numpy as np
+from config import PIPER_EXECUTABLE, PIPER_MODEL, TTS_OUTPUT_FILE
 
-from config import WHISPER_MODEL, WHISPER_DEVICE, WHISPER_COMPUTE_TYPE
+try:
+    import soundfile as sf
+    import sounddevice as sd
+    _PLAYBACK_AVAILABLE = True
+except (ImportError, OSError):
+    _PLAYBACK_AVAILABLE = False
 
-_model = None
-_model_load_failed = False
+
+def _piper_is_available() -> bool:
+    """Check whether the configured Piper executable can actually be found."""
+    return shutil.which(PIPER_EXECUTABLE) is not None or Path(PIPER_EXECUTABLE).exists()
 
 
-def _get_model():
-    """Lazily load the Faster-Whisper model once and reuse it."""
-    global _model, _model_load_failed
+def _voice_model_is_available() -> bool:
+    return Path(PIPER_MODEL).exists()
 
-    if _model is not None:
-        return _model
 
-    if _model_load_failed:
-        return None
+def speak(text: str) -> None:
+    """
+    Convert `text` to speech with Piper and play it back through the
+    default output device. Prints the text regardless, so the terminal
+    transcript stays useful even if voice output is unavailable.
+    """
+    print(f"\nSIRA: {text}\n")
+
+    if not text or not text.strip():
+        return
+
+    if not _piper_is_available() or not _voice_model_is_available():
+        print("SIRA: I can generate a response, but the voice engine is unavailable.\n")
+        return
 
     try:
-        from faster_whisper import WhisperModel
-
-        print(f"Loading speech recognition model '{WHISPER_MODEL}', please wait...\n")
-        _model = WhisperModel(
-            WHISPER_MODEL,
-            device=WHISPER_DEVICE,
-            compute_type=WHISPER_COMPUTE_TYPE,
+        subprocess.run(
+            [
+                PIPER_EXECUTABLE,
+                "--model", PIPER_MODEL,
+                "--output_file", TTS_OUTPUT_FILE,
+            ],
+            input=text.encode("utf-8"),
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
         )
-        return _model
-    except Exception as exc:  # noqa: BLE001 - any load failure should not crash SIRA
-        print(f"\nSIRA: The speech recognition model could not be loaded.\nDetails: {exc}\n")
-        _model_load_failed = True
-        return None
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError) as exc:
+        print(f"SIRA: I can generate a response, but the voice engine failed to run.\nDetails: {exc}\n")
+        return
+
+    _play_audio_file(TTS_OUTPUT_FILE)
 
 
-def transcribe_audio(audio: np.ndarray) -> Optional[str]:
-    """
-    Transcribe a 1D float32 NumPy array of audio samples into text.
-    Returns the transcribed text (possibly empty string if silence),
-    or None if transcription could not be performed at all.
-    """
-    model = _get_model()
-    if model is None:
-        return None
+def _play_audio_file(path: str) -> None:
+    """Play a WAV file and block until playback finishes."""
+    if not _PLAYBACK_AVAILABLE:
+        print("SIRA: Voice generated, but no audio playback library is available.\n")
+        return
 
     try:
-        segments, _info = model.transcribe(audio, language="en")
-        text = "".join(segment.text for segment in segments).strip()
-        return text
-    except Exception as exc:  # noqa: BLE001 - surface transcription errors cleanly
-        print(f"\nSIRA: An error occurred during transcription: {exc}\n")
-        return None
+        data, samplerate = sf.read(path, dtype="float32")
+        sd.play(data, samplerate)
+        sd.wait()  # Do not start listening again until playback is done
+    except Exception as exc:  # noqa: BLE001 - keep playback errors from crashing SIRA
+        print(f"SIRA: I generated a response but could not play the audio.\nDetails: {exc}\n")

@@ -1,4 +1,3 @@
-
 """
 SIRA AI Assistant - Voice Loop (V2 / Step 2)
 
@@ -23,6 +22,10 @@ from audio_recorder import record_audio
 from speech_to_text import transcribe_audio
 from text_to_speech import *
 
+# Max number of consecutive "no speech detected" attempts before SIRA
+# assumes the user has walked away / gone silent, and shuts down.
+MAX_SILENT_ATTEMPTS = 1  # 1 attempt at ~7s of silence = auto-exit
+
 
 def user_requested_exit(text: str) -> bool:
     """Check whether the transcribed text matches one of the configured exit phrases."""
@@ -39,6 +42,13 @@ def main() -> None:
 
     conversation_history: List[Message] = build_initial_history()
 
+    # Greet the user once, right after the model is warmed up and ready.
+    greeting = "Hey, I'm SIRA. What can I help you with?"
+    print(f"\nSIRA: {greeting}")
+    speak(greeting)
+
+    silent_attempts = 0
+
     while True:
         audio = record_audio()
 
@@ -54,8 +64,17 @@ def main() -> None:
             break
 
         if not text.strip():
-            # Silence or unintelligible audio - just keep listening.
+            # Silence or unintelligible audio.
+            silent_attempts += 1
+            if silent_attempts >= MAX_SILENT_ATTEMPTS:
+                message = "Not listening any message... Bye"
+                print(f"\nSIRA: {message}")
+                speak(message)
+                break
             continue
+
+        # Got real speech - reset the silence counter.
+        silent_attempts = 0
 
         print(f"\nYou: {text}")
 
@@ -80,4 +99,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nSIRA: Until next time.")    
+        print("\n\nSIRA: Until next time.")
