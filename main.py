@@ -21,7 +21,7 @@ from config import APP_BANNER, EXIT_COMMANDS
 from ollama_client import Message, build_initial_history, send_chat_request, warm_up_model
 from audio_recorder import record_audio
 from speech_to_text import transcribe_audio
-from text_to_speech import speak
+from text_to_speech import *
 
 
 def user_requested_exit(text: str) -> bool:
