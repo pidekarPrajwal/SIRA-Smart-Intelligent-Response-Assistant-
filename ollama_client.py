@@ -26,7 +26,9 @@ Message = Dict[str, str]
 
 def build_initial_history() -> List[Message]:
     """Create the starting conversation history with SIRA's system prompt."""
-    return [{"role": "system", "content": SIRA_SYSTEM_PROMPT}]
+    return [
+        {"role": "system", "content": SIRA_SYSTEM_PROMPT}
+    ]
 
 
 def send_chat_request(messages: List[Message]) -> Optional[str]:
@@ -39,6 +41,10 @@ def send_chat_request(messages: List[Message]) -> Optional[str]:
         "model": OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
+        "options": {
+            "num_predict": 60,   # cap response length -> faster + shorter replies
+            "temperature": 0.7,
+        },
     }
 
     try:
